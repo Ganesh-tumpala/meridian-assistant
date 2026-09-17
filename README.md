@@ -35,6 +35,10 @@ A working chat application with all four layers you have been learning about:
 
 **The only file you need to edit is `config.ts`.**
 
+A full architecture reference lives in [`docs/architecture.html`](docs/architecture.html) —
+open it in a browser. It covers all five stages, the subgraphs, every tool, retrieval,
+tracing and the failure behaviour, with diagrams.
+
 ### How an answer gets made
 
 Every question goes through five stages, and you can watch all five on the

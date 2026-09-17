@@ -1,0 +1,1347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian Assistant Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+  :root {
+    --ink:        #16202e;
+    --ink-soft:   #48566b;
+    --ink-faint:  #6d7c92;
+    --ground:     #f6f7fb;
+    --panel:      #ffffff;
+    --panel-2:    #eef1f7;
+    --rule:       #dce2ec;
+    --rule-soft:  #e7ebf3;
+    --navy:       #2c4a7e;
+    --navy-deep:  #1e3358;
+    --navy-wash:  #e8edf6;
+    --good:       #1a7a58;
+    --good-wash:  #e2f2eb;
+    --warn:       #96650a;
+    --warn-wash:  #fbf0dc;
+    --bad:        #b3261e;
+    --bad-wash:   #fbe6e4;
+
+    --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --body:    "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono:    "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink:        #e4e9f2;
+      --ink-soft:   #a9b5c8;
+      --ink-faint:  #7f8da3;
+      --ground:     #11161f;
+      --panel:      #172030;
+      --panel-2:    #1e293b;
+      --rule:       #2c3849;
+      --rule-soft:  #232f40;
+      --navy:       #8fb2e8;
+      --navy-deep:  #b6cdf2;
+      --navy-wash:  #1b2740;
+      --good:       #63c79e;
+      --good-wash:  #16302a;
+      --warn:       #dfa842;
+      --warn-wash:  #332715;
+      --bad:        #ef8b82;
+      --bad-wash:   #351c1c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink:        #e4e9f2;
+    --ink-soft:   #a9b5c8;
+    --ink-faint:  #7f8da3;
+    --ground:     #11161f;
+    --panel:      #172030;
+    --panel-2:    #1e293b;
+    --rule:       #2c3849;
+    --rule-soft:  #232f40;
+    --navy:       #8fb2e8;
+    --navy-deep:  #b6cdf2;
+    --navy-wash:  #1b2740;
+    --good:       #63c79e;
+    --good-wash:  #16302a;
+    --warn:       #dfa842;
+    --warn-wash:  #332715;
+    --bad:        #ef8b82;
+    --bad-wash:   #351c1c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 0 72px;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-block: 56px 20px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--navy);
+    margin: 0 0 14px;
+  }
+  .masthead h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.1rem, 5.4vw, 3.3rem);
+    line-height: 1.04;
+    letter-spacing: -0.021em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 1.14rem;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 18px 0 0;
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    margin-top: 26px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  .facts b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout ---------- */
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+  @media (min-width: 1000px) {
+    .columns { grid-template-columns: 208px minmax(0, 1fr); gap: 56px; }
+    .toc { position: sticky; top: 24px; }
+  }
+
+  .toc h2 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+  .toc a {
+    font-family: var(--display);
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    display: block;
+    padding: 2px 0;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+  }
+  .toc a:hover { color: var(--navy); border-left-color: var(--navy); }
+  .toc a:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+  main { min-width: 0; }
+
+  section { margin-bottom: 60px; scroll-margin-top: 20px; }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.62rem;
+    letter-spacing: -0.014em;
+    line-height: 1.2;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.06rem;
+    letter-spacing: -0.006em;
+    margin: 34px 0 8px;
+  }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--navy);
+    margin: 0 0 8px;
+  }
+  .lede { color: var(--ink-soft); max-width: 66ch; margin: 0 0 22px; }
+  p { max-width: 68ch; margin: 0 0 16px; }
+  ul, ol { max-width: 66ch; padding-left: 20px; }
+  li { margin-bottom: 7px; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.855em;
+    background: var(--panel-2);
+    padding: 0.1em 0.36em;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+  a { color: var(--navy); }
+
+  /* ---------- stage headers (the only numbered things) ---------- */
+
+  .stage { display: flex; gap: 16px; align-items: baseline; margin: 0 0 8px; }
+  .stage-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--panel);
+    background: var(--navy);
+    border-radius: 3px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+  }
+  .stage h3 { margin: 0; font-size: 1.24rem; }
+
+  /* ---------- figures ---------- */
+
+  figure { margin: 26px 0; }
+  .figbox {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 22px 18px;
+    overflow-x: auto;
+  }
+  figure svg { display: block; max-width: 100%; height: auto; margin: 0 auto; color: var(--ink); }
+  figcaption {
+    font-size: 13.5px;
+    color: var(--ink-faint);
+    margin-top: 10px;
+    max-width: 68ch;
+  }
+
+  /* ---------- tables ---------- */
+
+  .tablebox { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; margin: 22px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--panel); }
+  th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+    background: var(--panel-2);
+  }
+  td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+    font-family: var(--body);
+    color: var(--ink-soft);
+  }
+  tr:last-child td { border-bottom: none; }
+  td.id { font-family: var(--mono); font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- pills ---------- */
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .p-good { background: var(--good-wash); color: var(--good); }
+  .p-warn { background: var(--warn-wash); color: var(--warn); }
+  .p-bad  { background: var(--bad-wash);  color: var(--bad); }
+  .p-navy { background: var(--navy-wash); color: var(--navy); }
+
+  /* ---------- call-out ---------- */
+
+  .note {
+    border-left: 3px solid var(--navy);
+    background: var(--navy-wash);
+    padding: 15px 18px;
+    margin: 22px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .note p { margin: 0; max-width: 64ch; }
+  .note p + p { margin-top: 10px; }
+  .note strong { color: var(--ink); }
+
+  .note.caution { border-left-color: var(--warn); background: var(--warn-wash); }
+
+  /* ---------- code block ---------- */
+
+  pre {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 15px 17px;
+    overflow-x: auto;
+    margin: 20px 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 12.7px;
+    line-height: 1.62;
+    color: var(--ink-soft);
+    white-space: pre;
+  }
+
+  /* ---------- definition rows ---------- */
+
+  .rows { display: grid; gap: 0; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; margin: 22px 0; }
+  .row { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 14px 16px; background: var(--panel); border-bottom: 1px solid var(--rule-soft); }
+  .row:last-child { border-bottom: none; }
+  @media (min-width: 640px) { .row { grid-template-columns: 190px minmax(0,1fr); gap: 20px; align-items: baseline; } }
+  .row dt { font-family: var(--mono); font-size: 12.5px; color: var(--ink); font-weight: 600; }
+  .row dd { margin: 0; font-size: 15px; color: var(--ink-soft); }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 64px;
+    padding-top: 22px;
+    font-size: 13.5px;
+    color: var(--ink-faint);
+    max-width: 68ch;
+  }
+  footer code { font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Meridian Bank &middot; Customer Service Assistant</p>
+    <h1>How the agent decides what to say</h1>
+    <p class="standfirst">
+      An architecture reference: the five stages every question passes through, the five
+      subgraphs it can be routed to, the thirteen tools it can call, and the guardrail that
+      gets the last word before a customer sees anything.
+    </p>
+    <div class="facts">
+      <span><b>5</b> stages</span>
+      <span><b>5</b> subgraphs</span>
+      <span><b>13</b> tools</span>
+      <span><b>11</b> knowledge documents</span>
+      <span><b>7</b> guardrail checks</span>
+      <span><b>183</b> tests</span>
+    </div>
+  </header>
+
+  <div class="columns">
+
+    <nav class="toc" aria-label="Contents">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#overview">System at a glance</a></li>
+        <li><a href="#lifecycle">The request lifecycle</a></li>
+        <li><a href="#router">1 &middot; Router</a></li>
+        <li><a href="#planner">2 &middot; Planner</a></li>
+        <li><a href="#executor">3 &middot; Executor</a></li>
+        <li><a href="#composer">4 &middot; Composer</a></li>
+        <li><a href="#guardrail">5 &middot; Guardrail</a></li>
+        <li><a href="#subgraphs">Subgraphs</a></li>
+        <li><a href="#tools">Tool calling</a></li>
+        <li><a href="#catalogue">The 13 tools</a></li>
+        <li><a href="#knowledge">Knowledge &amp; retrieval</a></li>
+        <li><a href="#tracing">Tracing</a></li>
+        <li><a href="#storage">What gets stored</a></li>
+        <li><a href="#failure">When things fail</a></li>
+        <li><a href="#decisions">Decisions &amp; rationale</a></li>
+        <li><a href="#files">File map</a></li>
+      </ol>
+    </nav>
+
+    <main>
+
+      <!-- ================= OVERVIEW ================= -->
+      <section id="overview">
+        <p class="kicker">Orientation</p>
+        <h2>System at a glance</h2>
+        <p class="lede">
+          A browser talks to one API route. That route runs the agent, saves the result, and
+          returns both the answer and a summary of how it was reached.
+        </p>
+
+        <p>
+          Three external services are involved, and the app degrades rather than fails when any
+          of them is absent. Without a database it answers but remembers nothing. Without
+          Langfuse keys it answers and records runs locally but sends no traces. Only the model
+          is genuinely required.
+        </p>
+
+        <figure>
+          <div class="figbox">
+            <svg viewBox="0 0 800 300" role="img" aria-label="The browser posts to one API route, which runs the agent; the agent calls Groq for three model steps, reads a local knowledge base, and writes to Neon Postgres and Langfuse.">
+              <defs>
+                <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+                </marker>
+              </defs>
+              <g font-family="JetBrains Mono, monospace" font-size="12" fill="currentColor">
+
+                <!-- browser -->
+                <rect x="10" y="118" width="118" height="54" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="69" y="141" text-anchor="middle" font-size="12.5">Browser</text>
+                <text x="69" y="158" text-anchor="middle" font-size="10.5" opacity="0.62">app/page.tsx</text>
+
+                <line x1="128" y1="145" x2="196" y2="145" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+                <text x="162" y="137" text-anchor="middle" font-size="10">POST</text>
+
+                <!-- route -->
+                <rect x="198" y="118" width="122" height="54" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="259" y="141" text-anchor="middle" font-size="12.5">/api/chat</text>
+                <text x="259" y="158" text-anchor="middle" font-size="10.5" opacity="0.62">route handler</text>
+
+                <line x1="320" y1="145" x2="388" y2="145" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+                <!-- agent -->
+                <rect x="390" y="104" width="136" height="82" rx="4" fill="none" stroke="#2c4a7e" stroke-width="2"/>
+                <text x="458" y="130" text-anchor="middle" font-size="12.5" fill="#2c4a7e" font-weight="600">Agent graph</text>
+                <text x="458" y="148" text-anchor="middle" font-size="10" opacity="0.7">route &#183; plan &#183; execute</text>
+                <text x="458" y="163" text-anchor="middle" font-size="10" opacity="0.7">compose &#183; guard</text>
+
+                <!-- groq -->
+                <line x1="526" y1="124" x2="638" y2="60" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+                <text x="596" y="82" text-anchor="middle" font-size="10">1&#8211;3 calls</text>
+                <rect x="640" y="34" width="150" height="50" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="715" y="54" text-anchor="middle" font-size="12">Groq</text>
+                <text x="715" y="70" text-anchor="middle" font-size="10" opacity="0.62">gpt-oss-120b</text>
+
+                <!-- knowledge (in-process) -->
+                <line x1="458" y1="186" x2="458" y2="228" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+                <text x="468" y="212" font-size="10">BM25</text>
+                <rect x="368" y="230" width="180" height="48" rx="4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <text x="458" y="250" text-anchor="middle" font-size="12">Knowledge base</text>
+                <text x="458" y="266" text-anchor="middle" font-size="10" opacity="0.62">11 docs, in process</text>
+
+                <!-- neon -->
+                <line x1="526" y1="152" x2="638" y2="152" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+                <text x="582" y="145" text-anchor="middle" font-size="10">writes</text>
+                <rect x="640" y="128" width="150" height="50" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="715" y="148" text-anchor="middle" font-size="12">Neon Postgres</text>
+                <text x="715" y="164" text-anchor="middle" font-size="10" opacity="0.62">optional</text>
+
+                <!-- langfuse -->
+                <line x1="526" y1="176" x2="638" y2="238" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+                <text x="600" y="222" text-anchor="middle" font-size="10">OTLP</text>
+                <rect x="640" y="222" width="150" height="50" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="715" y="242" text-anchor="middle" font-size="12">Langfuse</text>
+                <text x="715" y="258" text-anchor="middle" font-size="10" opacity="0.62">optional</text>
+
+                <!-- return -->
+                <path d="M 390 168 L 360 168 L 360 205 L 69 205 L 69 176" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+                <text x="215" y="199" text-anchor="middle" font-size="10" opacity="0.75">answer + run summary</text>
+              </g>
+            </svg>
+          </div>
+          <figcaption>
+            Solid arrows are calls the agent makes; the dashed return carries the answer plus the
+            branch, tools and guardrail verdict, which is what the chat page renders under each
+            reply. The knowledge base is dashed because it is not a service &mdash; it is a TypeScript
+            array searched in the same process.
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ================= LIFECYCLE ================= -->
+      <section id="lifecycle">
+        <p class="kicker">The shape of a request</p>
+        <h2>The request lifecycle</h2>
+        <p class="lede">
+          Five stages, always in this order. Each one opens a trace span, so the picture below and
+          the timeline on a run page are the same thing.
+        </p>
+
+        <figure>
+          <div class="figbox">
+            <svg viewBox="0 0 820 250" role="img" aria-label="Five stages in sequence: router picks a subgraph, planner writes tool calls, executor runs them, composer writes the answer, guardrail passes, rewrites or blocks it.">
+              <defs>
+                <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+                </marker>
+              </defs>
+              <g font-family="JetBrains Mono, monospace" fill="currentColor">
+
+                <text x="10" y="28" font-size="10.5" opacity="0.62">question</text>
+                <line x1="10" y1="62" x2="10" y2="86" stroke="currentColor" stroke-width="1.2"/>
+
+                <!-- stage boxes -->
+                <g>
+                  <rect x="8" y="40" width="140" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <text x="20" y="62" font-size="11" opacity="0.55">1</text>
+                  <text x="78" y="64" text-anchor="middle" font-size="13" font-weight="600">router</text>
+                  <text x="78" y="82" text-anchor="middle" font-size="9.5" opacity="0.62">picks a subgraph</text>
+                </g>
+                <line x1="148" y1="69" x2="176" y2="69" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+                <g>
+                  <rect x="178" y="40" width="140" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <text x="190" y="62" font-size="11" opacity="0.55">2</text>
+                  <text x="248" y="64" text-anchor="middle" font-size="13" font-weight="600">planner</text>
+                  <text x="248" y="82" text-anchor="middle" font-size="9.5" opacity="0.62">writes tool calls</text>
+                </g>
+                <line x1="318" y1="69" x2="346" y2="69" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+                <g>
+                  <rect x="348" y="40" width="140" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <text x="360" y="62" font-size="11" opacity="0.55">3</text>
+                  <text x="418" y="64" text-anchor="middle" font-size="13" font-weight="600">executor</text>
+                  <text x="418" y="82" text-anchor="middle" font-size="9.5" opacity="0.62">runs them</text>
+                </g>
+                <line x1="488" y1="69" x2="516" y2="69" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+                <g>
+                  <rect x="518" y="40" width="140" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <text x="530" y="62" font-size="11" opacity="0.55">4</text>
+                  <text x="588" y="64" text-anchor="middle" font-size="13" font-weight="600">composer</text>
+                  <text x="588" y="82" text-anchor="middle" font-size="9.5" opacity="0.62">writes the answer</text>
+                </g>
+                <line x1="658" y1="69" x2="686" y2="69" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+                <g>
+                  <rect x="688" y="40" width="124" height="58" rx="4" fill="none" stroke="#2c4a7e" stroke-width="2"/>
+                  <text x="700" y="62" font-size="11" fill="#2c4a7e" opacity="0.8">5</text>
+                  <text x="750" y="64" text-anchor="middle" font-size="13" font-weight="600" fill="#2c4a7e">guardrail</text>
+                  <text x="750" y="82" text-anchor="middle" font-size="9.5" opacity="0.62">last word</text>
+                </g>
+
+                <!-- what flows between -->
+                <text x="163" y="122" text-anchor="middle" font-size="9.5" opacity="0.7">subgraph</text>
+                <text x="333" y="122" text-anchor="middle" font-size="9.5" opacity="0.7">plan</text>
+                <text x="503" y="122" text-anchor="middle" font-size="9.5" opacity="0.7">tool results</text>
+                <text x="673" y="122" text-anchor="middle" font-size="9.5" opacity="0.7">draft</text>
+                <line x1="163" y1="100" x2="163" y2="112" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+                <line x1="333" y1="100" x2="333" y2="112" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+                <line x1="503" y1="100" x2="503" y2="112" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+                <line x1="673" y1="100" x2="673" y2="112" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+
+                <!-- model call markers -->
+                <text x="78" y="148" text-anchor="middle" font-size="9.5" opacity="0.62">model (JSON)</text>
+                <text x="248" y="148" text-anchor="middle" font-size="9.5" opacity="0.62">model (JSON)</text>
+                <text x="418" y="148" text-anchor="middle" font-size="9.5" opacity="0.62">no model</text>
+                <text x="588" y="148" text-anchor="middle" font-size="9.5" opacity="0.62">model (text)</text>
+                <text x="750" y="148" text-anchor="middle" font-size="9.5" opacity="0.62">no model</text>
+
+                <!-- three outcomes -->
+                <line x1="750" y1="158" x2="750" y2="178" stroke="currentColor" stroke-width="1.2"/>
+                <line x1="470" y1="178" x2="750" y2="178" stroke="currentColor" stroke-width="1.2"/>
+                <line x1="470" y1="178" x2="470" y2="196" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+                <line x1="610" y1="178" x2="610" y2="196" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+                <line x1="750" y1="178" x2="750" y2="196" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+
+                <rect x="410" y="198" width="120" height="34" rx="3" fill="none" stroke="#1a7a58" stroke-width="1.5"/>
+                <text x="470" y="215" text-anchor="middle" font-size="11.5" fill="#1a7a58">pass</text>
+                <text x="470" y="228" text-anchor="middle" font-size="9" opacity="0.62">sent unchanged</text>
+
+                <rect x="550" y="198" width="120" height="34" rx="3" fill="none" stroke="#96650a" stroke-width="1.5"/>
+                <text x="610" y="215" text-anchor="middle" font-size="11.5" fill="#96650a">rewritten</text>
+                <text x="610" y="228" text-anchor="middle" font-size="9" opacity="0.62">tidied, then sent</text>
+
+                <rect x="690" y="198" width="120" height="34" rx="3" fill="none" stroke="#b3261e" stroke-width="1.5"/>
+                <text x="750" y="215" text-anchor="middle" font-size="11.5" fill="#b3261e">blocked</text>
+                <text x="750" y="228" text-anchor="middle" font-size="9" opacity="0.62">replaced</text>
+              </g>
+            </svg>
+          </div>
+          <figcaption>
+            Only three of the five stages call the model. The executor and the guardrail are
+            ordinary code, which is what makes a run reproducible and cheap to test.
+          </figcaption>
+        </figure>
+
+        <p>
+          The number of model calls per question is not fixed. A question caught by a routing rule
+          and sent to the terminal <code>refusal</code> branch skips both the router's model call
+          and the planner entirely, so it costs <strong>one</strong> call. An ordinary question the
+          rules do not catch costs <strong>three</strong>.
+        </p>
+      </section>
+
+      <!-- ================= ROUTER ================= -->
+      <section id="router">
+        <div class="stage"><span class="stage-num">Stage 1</span><h3>Router</h3></div>
+        <p class="lede">
+          Decides which subgraph handles the question, before any work is done.
+          <code>lib/agent/router.ts</code>
+        </p>
+
+        <p>
+          The router asks the model, but it does not trust it. Three things happen in order, and
+          the earliest one to produce an answer wins.
+        </p>
+
+        <figure>
+          <div class="figbox">
+            <svg viewBox="0 0 760 290" role="img" aria-label="Routing order: nine hard rules run first and return immediately; otherwise the policy tool and the model both run, and the policy tool can override the model's choice to escalation.">
+              <defs>
+                <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+                </marker>
+              </defs>
+              <g font-family="JetBrains Mono, monospace" fill="currentColor">
+
+                <rect x="10" y="16" width="130" height="44" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="75" y="43" text-anchor="middle" font-size="12">question</text>
+
+                <line x1="140" y1="38" x2="186" y2="38" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+
+                <rect x="188" y="10" width="170" height="56" rx="4" fill="none" stroke="#2c4a7e" stroke-width="2"/>
+                <text x="273" y="33" text-anchor="middle" font-size="12.5" fill="#2c4a7e" font-weight="600">9 hard rules</text>
+                <text x="273" y="51" text-anchor="middle" font-size="9.5" opacity="0.65">regex, first match wins</text>
+
+                <!-- rule hit -->
+                <line x1="358" y1="38" x2="470" y2="38" stroke="#2c4a7e" stroke-width="2" marker-end="url(#ar3)"/>
+                <text x="414" y="30" text-anchor="middle" font-size="9.5" fill="#2c4a7e">match</text>
+                <rect x="472" y="16" width="170" height="44" rx="4" fill="none" stroke="#2c4a7e" stroke-width="2"/>
+                <text x="557" y="36" text-anchor="middle" font-size="12" fill="#2c4a7e">decided</text>
+                <text x="557" y="51" text-anchor="middle" font-size="9.5" opacity="0.65">no model call at all</text>
+
+                <!-- no match -->
+                <line x1="273" y1="66" x2="273" y2="90" stroke="currentColor" stroke-width="1.5"/>
+                <text x="283" y="88" font-size="9.5" opacity="0.7">no match</text>
+
+                <!-- two paths -->
+                <rect x="120" y="102" width="180" height="50" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="210" y="122" text-anchor="middle" font-size="11.5">check_request_permitted</text>
+                <text x="210" y="139" text-anchor="middle" font-size="9.5" opacity="0.65">policy tool, code only</text>
+
+                <rect x="330" y="102" width="180" height="50" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="420" y="122" text-anchor="middle" font-size="11.5">model</text>
+                <text x="420" y="139" text-anchor="middle" font-size="9.5" opacity="0.65">JSON, picks a branch</text>
+
+                <line x1="210" y1="90" x2="420" y2="90" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="210" y1="90" x2="210" y2="102" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="420" y1="90" x2="420" y2="102" stroke="currentColor" stroke-width="1.5"/>
+
+                <line x1="210" y1="152" x2="210" y2="186" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+                <line x1="420" y1="152" x2="420" y2="186" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+
+                <rect x="150" y="188" width="330" height="48" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="315" y="208" text-anchor="middle" font-size="11.5">policy overrides the model</text>
+                <text x="315" y="225" text-anchor="middle" font-size="9.5" opacity="0.72">not permitted + model said knowledge/accounts &#8594; escalation</text>
+
+                <line x1="315" y1="236" x2="315" y2="262" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+                <text x="315" y="280" text-anchor="middle" font-size="12">subgraph</text>
+              </g>
+            </svg>
+          </div>
+          <figcaption>
+            The policy tool is a second opinion the model cannot talk its way past. If it says a
+            request needs a person, the model is not allowed to send that question to a branch
+            that would answer it.
+          </figcaption>
+        </figure>
+
+        <h3>The nine rules, in order</h3>
+        <p>Order matters: the first rule that matches wins, so the most serious categories are checked first.</p>
+
+        <div class="tablebox">
+          <table>
+            <thead>
+              <tr><th>Rule</th><th>Fires on</th><th>Sends to</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="id">other-bank</td><td>Barclays, HSBC, Monzo, Starling &hellip;</td><td><span class="pill p-navy">refusal</span></td></tr>
+              <tr><td class="id">creative-writing</td><td>&ldquo;write me a poem / song / story&rdquo;</td><td><span class="pill p-navy">refusal</span></td></tr>
+              <tr><td class="id">investment-advice</td><td>&ldquo;should I invest / put it in stocks&rdquo;</td><td><span class="pill p-navy">refusal</span></td></tr>
+              <tr><td class="id">legal-advice</td><td>Section 75, chargeback, ombudsman</td><td><span class="pill p-navy">refusal</span></td></tr>
+              <tr><td class="id">account-specific</td><td>&ldquo;my balance&rdquo;, &ldquo;am I overdrawn&rdquo;</td><td><span class="pill p-navy">escalation</span></td></tr>
+              <tr><td class="id">fee-waiver</td><td>&ldquo;waive the fee&rdquo;, &ldquo;just this once&rdquo;</td><td><span class="pill p-navy">escalation</span></td></tr>
+              <tr><td class="id">complaint-or-dispute</td><td>complaint, bereavement, close my account</td><td><span class="pill p-navy">escalation</span></td></tr>
+              <tr><td class="id">active-fraud</td><td>scam, phishing, &ldquo;safe account&rdquo;, stolen</td><td><span class="pill p-navy">fraud</span></td></tr>
+              <tr><td class="id">calculation</td><td>&ldquo;how much would &hellip; overdraft / limit&rdquo;</td><td><span class="pill p-navy">accounts</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <p>
+            <strong>Why rules at all, when there is a perfectly good model?</strong> Because the
+            cost of being wrong is not symmetrical. Routing a fee question to the wrong branch
+            produces a clumsy answer; routing &ldquo;what is my balance&rdquo; to a branch that
+            answers it produces an invented number in a banking app. A regex cannot be charmed,
+            and it costs nothing to run.
+          </p>
+        </div>
+
+        <p>
+          If the model call fails outright, the router falls back to <code>escalation</code> when
+          the policy tool objected and <code>knowledge</code> otherwise &mdash; the safe default,
+          because the knowledge composer refuses to invent anything.
+        </p>
+      </section>
+
+      <!-- ================= PLANNER ================= -->
+      <section id="planner">
+        <div class="stage"><span class="stage-num">Stage 2</span><h3>Planner</h3></div>
+        <p class="lede">
+          Writes the whole list of tool calls before any of them run.
+          <code>lib/agent/planner.ts</code>
+        </p>
+
+        <p>
+          The planner is given only the tools its branch is allowed to use, and returns JSON:
+          a one-sentence rationale and up to four steps, each with an intent, a tool name and
+          arguments. Planning up front rather than improvising one call at a time means the whole
+          plan is visible in the trace and can be judged on its own.
+        </p>
+
+        <pre><code>{
+  "reasoning": "Look up the published fee, then confirm the cap.",
+  "steps": [
+    { "intent": "Find the passage about overdraft fees",
+      "tool": "search_knowledge_base",
+      "args": { "query": "unarranged overdraft fee" } },
+    { "intent": "Confirm the exact published figure",
+      "tool": "lookup_fee",
+      "args": { "fee": "unarranged_overdraft" } }
+  ]
+}</code></pre>
+
+        <h3>Everything the model returns is checked</h3>
+        <p>
+          <code>validatePlan()</code> is the reason a hallucinated tool name never reaches the
+          executor. It drops any step that names a tool which does not exist, or one the branch is
+          not permitted to use, renumbers the survivors, and records what it dropped in the trace.
+        </p>
+
+        <dl class="rows">
+          <div class="row"><dt>MAX_STEPS = 4</dt><dd>A hard ceiling. More steps means more latency and more chances to go wrong, and nothing in this domain needs five lookups.</dd></div>
+          <div class="row"><dt>Unknown tool</dt><dd>Dropped, with the name recorded. The run continues with whatever remains.</dd></div>
+          <div class="row"><dt>Wrong branch</dt><dd>Dropped. <code>create_handoff</code> planned on the knowledge branch never runs.</dd></div>
+          <div class="row"><dt>No usable steps</dt><dd>Falls back to searching the knowledge base, which is always a defensible first move.</dd></div>
+          <div class="row"><dt>Terminal branch</dt><dd><code>refusal</code> returns an empty plan without calling the model at all.</dd></div>
+        </dl>
+      </section>
+
+      <!-- ================= EXECUTOR ================= -->
+      <section id="executor">
+        <div class="stage"><span class="stage-num">Stage 3</span><h3>Executor</h3></div>
+        <p class="lede">
+          Runs the plan, one tool at a time, each in its own span.
+          <code>lib/agent/executor.ts</code>
+        </p>
+
+        <p>
+          A failing tool does not stop the run. The failure is recorded and the next step goes
+          ahead, because a partial set of facts still beats no answer, and the composer is told
+          plainly which steps failed.
+        </p>
+
+        <h3>Missing arguments are filled in</h3>
+        <p>
+          Models routinely forget the obvious argument &mdash; most often the search query itself.
+          Rather than failing the step, <code>withDefaults()</code> supplies the question:
+        </p>
+
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>Tool</th><th>Missing argument</th><th>Filled with</th></tr></thead>
+            <tbody>
+              <tr><td class="id">search_knowledge_base</td><td class="id">query</td><td>the customer's question</td></tr>
+              <tr><td class="id">check_request_permitted</td><td class="id">request</td><td>the customer's question</td></tr>
+              <tr><td class="id">assess_fraud_risk</td><td class="id">description</td><td>the customer's question</td></tr>
+              <tr><td class="id">create_handoff</td><td class="id">summary, reason, urgency</td><td>the question, a generic reason, <code>routine</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Afterwards the executor collects every distinct <code>citations</code> entry returned by
+          any step. That deduplicated list is what appears under the answer as its sources.
+        </p>
+      </section>
+
+      <!-- ================= COMPOSER ================= -->
+      <section id="composer">
+        <div class="stage"><span class="stage-num">Stage 4</span><h3>Composer</h3></div>
+        <p class="lede">
+          Turns the tool results into the sentences a customer reads.
+          <code>lib/agent/composer.ts</code>
+        </p>
+
+        <p>
+          The composer receives the tool results and nothing else &mdash; no conversation history,
+          no general knowledge licence. Its prompt is assembled from three parts: a fixed house
+          style, the branch's own guidance, and the formatted results.
+        </p>
+
+        <dl class="rows">
+          <div class="row"><dt>House style</dt><dd>British English, two to five sentences, no greeting, no headings or bullets. Amounts written as the source writes them &mdash; &ldquo;6 pounds per day&rdquo;, not &ldquo;&pound;6/day&rdquo;.</dd></div>
+          <div class="row"><dt>Phone numbers</dt><dd>Only two exist: <code>0800 555 0199</code> for lost cards and <code>0800 555 0177</code> for fraud. The general line has no published number, so it is named and given hours, never a number.</dd></div>
+          <div class="row"><dt>Branch guidance</dt><dd>Each subgraph adds its own instruction &mdash; the fraud branch leads with the action and the number; the accounts branch states the tool's figure and shows no workings.</dd></div>
+          <div class="row"><dt>maxTokens 1500</dt><dd>Generous on purpose. A reasoning model spends tokens thinking before it writes; too small a budget produces an empty reply rather than an error.</dd></div>
+        </dl>
+
+        <div class="note caution">
+          <p>
+            <strong>A real failure this instruction fixed.</strong> The house style originally said
+            &ldquo;give the phone number whenever the answer involves calling someone&rdquo;. The
+            fact sheet publishes the general line's <em>hours</em> but no number &mdash; so the model
+            invented one. The guardrail caught it and blocked the answer, which is the system
+            working, but the instruction was the actual bug.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= GUARDRAIL ================= -->
+      <section id="guardrail">
+        <div class="stage"><span class="stage-num">Stage 5</span><h3>Guardrail</h3></div>
+        <p class="lede">
+          Assumes everything upstream got it wrong, and looks for the specific ways a bank
+          assistant causes harm. <code>lib/agent/guardrail.ts</code>
+        </p>
+
+        <p>
+          The guardrail is plain code, not another model call. A model asked to check a model is
+          only as reliable as the thing it is checking, and it fails in exactly the situations
+          where you need it most.
+        </p>
+
+        <h3>Repair runs before any check</h3>
+        <p>
+          The first thing that happens is normalisation, and it is load-bearing. Models write
+          <code>can&rsquo;t</code> with a typographic apostrophe and <code>one&#8209;time</code> with a
+          non-breaking hyphen. Both look identical on screen and both defeat a plain-text check, so
+          every check after this point would silently miss them.
+        </p>
+
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>Repair</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td>Typographic punctuation &rarr; plain</td><td>curly quotes, non-breaking hyphens, ellipsis</td></tr>
+              <tr><td>Currency symbol &rarr; the word</td><td><code>&pound;6</code> becomes <code>6 pounds</code></td></tr>
+              <tr><td>Strip emphasis</td><td><code>**6 pounds**</code> becomes <code>6 pounds</code></td></tr>
+              <tr><td>Strip list and heading markers</td><td>leading <code>-</code>, <code>*</code>, <code>##</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>The seven checks</h3>
+        <p>
+          Four are <strong>blocking</strong>: failing one replaces the answer entirely. Three are
+          <strong>advisory</strong>: they are recorded on the run page but the answer still goes out.
+        </p>
+
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>Check</th><th>Catches</th><th>Effect</th></tr></thead>
+            <tbody>
+              <tr><td class="id">no invented balance</td><td>A money amount stated as the customer's balance</td><td><span class="pill p-bad">blocks</span></td></tr>
+              <tr><td class="id">no unauthorised promise</td><td>&ldquo;I have waived&hellip;&rdquo;, &ldquo;I have raised your limit&rdquo;</td><td><span class="pill p-bad">blocks</span></td></tr>
+              <tr><td class="id">phone numbers are real</td><td>Any number that is not one of Meridian's two</td><td><span class="pill p-bad">blocks</span></td></tr>
+              <tr><td class="id">answer is substantial</td><td>Under 15 characters</td><td><span class="pill p-bad">blocks</span></td></tr>
+              <tr><td class="id">figures are sourced</td><td>A figure not present in any tool result</td><td><span class="pill p-warn">warns</span></td></tr>
+              <tr><td class="id">refusal is a refusal</td><td>An out-of-scope branch that answered anyway</td><td><span class="pill p-warn">warns</span></td></tr>
+              <tr><td class="id">no internal language</td><td>&ldquo;according to my knowledge base&rdquo;</td><td><span class="pill p-warn">warns</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          <code>figures are sourced</code> is deliberately advisory. Ordinary sentences contain
+          ordinary numbers, and blocking on that would break far more than it fixes.
+        </p>
+
+        <h3>A block chooses its replacement</h3>
+        <p>
+          The replacement has to fit the question it replaces. Telling someone asking about another
+          bank that you cannot see their account reads as though the assistant misunderstood.
+        </p>
+
+        <dl class="rows">
+          <div class="row"><dt>refusal branch</dt><dd>&ldquo;I can only answer questions about Meridian Bank's own published services&hellip;&rdquo;</dd></div>
+          <div class="row"><dt>balance question</dt><dd>&ldquo;I have no access to customer accounts, so I cannot see your balance&hellip;&rdquo;</dd></div>
+          <div class="row"><dt>anything else</dt><dd>The general refusal, with the phone line and its hours.</dd></div>
+        </dl>
+      </section>
+
+      <!-- ================= SUBGRAPHS ================= -->
+      <section id="subgraphs">
+        <p class="kicker">Branching</p>
+        <h2>The five subgraphs</h2>
+        <p class="lede">
+          A subgraph is a branch with its own tools and its own house style. Routing to one early
+          keeps each branch small.
+        </p>
+
+        <p>
+          The fraud branch never has to think about exchange rates; the refusal branch never runs
+          a tool at all. Restricting the tool list per branch is also a safety mechanism, not just
+          tidiness &mdash; it is why the planner cannot arrange a handoff on a general knowledge
+          question, or reach for a calculator on a question that should be declined.
+        </p>
+
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>Subgraph</th><th>Handles</th><th>Tools</th><th>Composer is told</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="id">knowledge</td>
+                <td>General questions about published products, fees, hours and the app. The default.</td>
+                <td class="num">10</td>
+                <td>Answer only from retrieved passages; quote figures exactly.</td>
+              </tr>
+              <tr>
+                <td class="id">accounts</td>
+                <td>Anything needing a calculation or a limit checked.</td>
+                <td class="num">8</td>
+                <td>Give the tool's figure, never your own. Show no workings.</td>
+              </tr>
+              <tr>
+                <td class="id">fraud</td>
+                <td>Scam calls, suspected fraud, anyone who may be at risk now.</td>
+                <td class="num">5</td>
+                <td>Lead with the action and the number. Be brief and calm.</td>
+              </tr>
+              <tr>
+                <td class="id">escalation</td>
+                <td>Complaints, disputes, bereavement, anything account-specific.</td>
+                <td class="num">5</td>
+                <td>Say what you cannot do in one sentence, then give the reference and route.</td>
+              </tr>
+              <tr>
+                <td class="id">refusal</td>
+                <td>Other banks, financial or legal advice, off-topic requests. <strong>Terminal.</strong></td>
+                <td class="num">0</td>
+                <td>Decline in one or two sentences. Do not answer any part of it.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <p>
+            <strong>Terminal means the pipeline short-circuits.</strong> On the refusal branch the
+            planner is skipped entirely and the executor has nothing to run, so the composer writes
+            from an empty result set. That is the point: there is nothing to look up, and the only
+            correct answer is a decline.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= TOOL CALLING ================= -->
+      <section id="tools">
+        <p class="kicker">Mechanism</p>
+        <h2>How tool calling works</h2>
+        <p class="lede">
+          Every tool is a plain TypeScript object with a description, typed parameters, a list of
+          branches allowed to use it, and a function. <code>lib/agent/tools.ts</code>
+        </p>
+
+        <pre><code>type Tool = {
+  name: string;
+  description: string;         // the model reads this to choose
+  parameters: ToolParameter[]; // name, type, required, optional enum
+  subgraphs: SubgraphName[];   // which branches may call it
+  mutates: boolean;            // true when it writes something
+  run: (args) =&gt; ToolResult | Promise&lt;ToolResult&gt;;
+};
+
+type ToolResult = {
+  ok: boolean;                 // false is an expected outcome, not a crash
+  summary: string;             // what the composer actually reads
+  data?: Record&lt;string, unknown&gt;;
+  citations?: string[];        // where the answer came from
+};</code></pre>
+
+        <p>
+          That one definition is used three ways, which is why a tool is described in exactly one
+          place and can never drift out of sync with itself:
+        </p>
+
+        <dl class="rows">
+          <div class="row"><dt>describeTools()</dt><dd>Renders the catalogue as text for the planner's prompt, so the model sees only the tools its branch may use.</dd></div>
+          <div class="row"><dt>toolSchemas()</dt><dd>Converts to OpenAI-style JSON function schemas, the format Groq accepts for native tool calling.</dd></div>
+          <div class="row"><dt>/tools page</dt><dd>Reduced to plain data on the server and rendered as a form, so any tool can be run by hand.</dd></div>
+        </dl>
+
+        <h3>Every tool is deterministic and offline</h3>
+        <p>
+          Not one of them calls a third-party API. Given the same arguments, each returns the same
+          result forever. That is a deliberate constraint with three payoffs: a run can be replayed,
+          a test can assert on exact figures, and a wrong answer can always be traced to either the
+          tool or the model that called it &mdash; never to a service having a bad day.
+        </p>
+
+        <p>
+          The corollary is that <code>ok: false</code> is an ordinary outcome, not an exception.
+          A tool throws only for a genuine bug; a tool that cannot do what was asked says so and
+          the run carries on.
+        </p>
+
+        <h3>Self-correcting retrieval</h3>
+        <p>
+          <code>search_knowledge_base</code> takes an optional category filter, which the planner
+          guesses. A wrong guess used to hide the very document that answered the question &mdash;
+          a lost-card question filtered to <code>fraud</code> returned nothing, because lost cards
+          live under <code>cards</code>. The tool now retries without the filter whenever a
+          filtered search comes back empty, and records that it widened. Narrowing can never do
+          worse than not narrowing.
+        </p>
+      </section>
+
+      <!-- ================= CATALOGUE ================= -->
+      <section id="catalogue">
+        <p class="kicker">Reference</p>
+        <h2>The thirteen tools</h2>
+        <p class="lede">
+          Twelve read; one writes. The one that writes is the only tool that changes anything
+          outside the request.
+        </p>
+
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>Tool</th><th>Does</th><th>Available on</th></tr></thead>
+            <tbody>
+              <tr><td class="id">search_knowledge_base</td><td>BM25 search over the 11 documents; returns passages and sources</td><td>knowledge, accounts, fraud, escalation</td></tr>
+              <tr><td class="id">lookup_fee</td><td>One published fee by name, from a fixed schedule</td><td>knowledge, accounts</td></tr>
+              <tr><td class="id">calculate_overdraft_cost</td><td>Cost over N days, applying the 60 pound monthly cap</td><td>knowledge, accounts</td></tr>
+              <tr><td class="id">check_transfer_limit</td><td>Whether an amount fits the 25,000 daily limit</td><td>knowledge, accounts</td></tr>
+              <tr><td class="id">estimate_payment_arrival</td><td>Timing and cost by payment type</td><td>knowledge, accounts</td></tr>
+              <tr><td class="id">find_branch</td><td>Nearest branch from a UK postcode area</td><td>knowledge, accounts, escalation</td></tr>
+              <tr><td class="id">get_opening_hours</td><td>Hours for branches, the phone line, the 24-hour lines</td><td>knowledge, fraud, escalation</td></tr>
+              <tr><td class="id">get_card_replacement_eta</td><td>Replacement card timing and cost by delivery method</td><td>knowledge, accounts, fraud</td></tr>
+              <tr><td class="id">assess_fraud_risk</td><td>Matches a description against published fraud rules</td><td>fraud</td></tr>
+              <tr><td class="id">validate_sort_code</td><td>Format check only; never confirms an account exists</td><td>knowledge, accounts</td></tr>
+              <tr><td class="id">convert_currency</td><td>Indicative conversion from a fixed rate table</td><td>knowledge, accounts</td></tr>
+              <tr><td class="id">check_request_permitted</td><td>Tests a request against service policy</td><td>knowledge, accounts, fraud, escalation</td></tr>
+              <tr><td class="id">create_handoff <span class="pill p-warn">writes</span></td><td>Records a handover with a reference and a route to a person</td><td>escalation, fraud</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= KNOWLEDGE ================= -->
+      <section id="knowledge">
+        <p class="kicker">Retrieval</p>
+        <h2>Knowledge and retrieval</h2>
+        <p class="lede">
+          Eleven documents in a TypeScript array, searched with BM25 in the same process.
+          <code>lib/knowledge/</code>
+        </p>
+
+        <p>
+          There is no embedding model and no vector database. For a fact sheet of this size that is
+          not a compromise: the vocabulary is small and customers use the same words as the
+          documents, which is exactly where BM25 is strongest. It is also instant, free, and returns
+          identical scores every time &mdash; which is what makes it testable.
+        </p>
+
+        <h3>What happens to a query</h3>
+        <dl class="rows">
+          <div class="row"><dt>tokenise</dt><dd>Lower-cased, split on words and figures. Figures keep their commas, so <code>25,000</code> survives as one token &mdash; it is the answer to a question.</dd></div>
+          <div class="row"><dt>stop words</dt><dd>About 60 words carrying no signal are dropped.</dd></div>
+          <div class="row"><dt>stem</dt><dd>Crude suffix stripping so <code>cards</code> matches <code>card</code>. Plurals lose only the <code>s</code>, so <code>charges</code> becomes <code>charge</code>, not <code>charg</code>.</dd></div>
+          <div class="row"><dt>score</dt><dd>BM25 with the standard <code>k1 = 1.5</code>, <code>b = 0.75</code>. Repeated words stop adding value; rare words count for far more than common ones.</dd></div>
+          <div class="row"><dt>threshold</dt><dd>Below <code>0.35</code> a hit is dropped as noise. Returning nothing is what lets the agent say it does not have that information, instead of answering from whatever scored least badly.</dd></div>
+        </dl>
+
+        <div class="note">
+          <p>
+            <strong>The fact sheet is imported, never copied.</strong> The single source of truth is
+            <code>BANK_FACTS</code> in <code>config.ts</code>; the knowledge base imports it as one
+            document and adds ten more alongside. There is exactly one place a fact can be wrong.
+          </p>
+        </div>
+
+        <p>
+          The <code>/knowledge</code> page runs this same search and shows the same scores, so when
+          an answer is thin you can see immediately whether the passage was missing or merely
+          unfindable.
+        </p>
+      </section>
+
+      <!-- ================= TRACING ================= -->
+      <section id="tracing">
+        <p class="kicker">Observability</p>
+        <h2>Tracing</h2>
+        <p class="lede">
+          Every stage opens a span. At the end of the request they are posted to Langfuse as
+          OpenTelemetry, in one awaited batch. <code>lib/trace.ts</code>, <code>lib/langfuse.ts</code>
+        </p>
+
+        <figure>
+          <div class="figbox">
+            <svg viewBox="0 0 640 250" role="img" aria-label="A trace is one root span named meridian-assistant with seven children: router, planner, three tool spans, composer and guardrail. Planner and composer are generations.">
+              <g font-family="JetBrains Mono, monospace" fill="currentColor" font-size="12">
+                <rect x="14" y="12" width="300" height="30" rx="3" fill="none" stroke="#2c4a7e" stroke-width="2"/>
+                <text x="26" y="32" font-size="12.5" fill="#2c4a7e" font-weight="600">meridian-assistant</text>
+                <text x="330" y="32" font-size="10" opacity="0.6">root span &#183; carries name, session, user, tags</text>
+
+                <g stroke="currentColor" stroke-width="1.2" opacity="0.5">
+                  <line x1="30" y1="42" x2="30" y2="228"/>
+                  <line x1="30" y1="62" x2="48" y2="62"/>
+                  <line x1="30" y1="88" x2="48" y2="88"/>
+                  <line x1="30" y1="114" x2="48" y2="114"/>
+                  <line x1="30" y1="140" x2="48" y2="140"/>
+                  <line x1="30" y1="166" x2="48" y2="166"/>
+                  <line x1="30" y1="192" x2="48" y2="192"/>
+                  <line x1="30" y1="218" x2="48" y2="218"/>
+                </g>
+
+                <text x="56" y="66">router</text>
+                <text x="480" y="66" font-size="10" opacity="0.62">SPAN</text>
+
+                <text x="56" y="92">planner</text>
+                <text x="480" y="92" font-size="10" fill="#2c4a7e">GENERATION</text>
+
+                <text x="56" y="118">tool:search_knowledge_base</text>
+                <text x="480" y="118" font-size="10" opacity="0.62">SPAN</text>
+
+                <text x="56" y="144">tool:check_request_permitted</text>
+                <text x="480" y="144" font-size="10" opacity="0.62">SPAN</text>
+
+                <text x="56" y="170">tool:assess_fraud_risk</text>
+                <text x="480" y="170" font-size="10" opacity="0.62">SPAN</text>
+
+                <text x="56" y="196">composer</text>
+                <text x="480" y="196" font-size="10" fill="#2c4a7e">GENERATION</text>
+
+                <text x="56" y="222">guardrail</text>
+                <text x="480" y="222" font-size="10" opacity="0.62">SPAN</text>
+              </g>
+            </svg>
+          </div>
+          <figcaption>
+            One trace from a real fraud question. The two model calls are typed as generations, so
+            Langfuse shows their prompts, model and token usage; everything else is an ordinary span.
+          </figcaption>
+        </figure>
+
+        <h3>Why OpenTelemetry and not Langfuse's own ingestion API</h3>
+        <div class="note caution">
+          <p>
+            Organisations created from September 2026 onwards cannot use the older v3 ingestion
+            endpoint. It still answers <code>207 Accepted</code> to every request and then stores
+            nothing &mdash; the worst possible failure mode, because everything looks healthy.
+          </p>
+          <p>
+            This was caught only by posting a run and then <em>reading it back</em>. The observations
+            API returned an empty list. OTLP is the supported route and, being a standard, is what
+            any other tracing backend would also accept.
+          </p>
+        </div>
+
+        <dl class="rows">
+          <div class="row"><dt>Identifiers</dt><dd>Real OpenTelemetry hex: 16 bytes for a trace, 8 for a span. Anything else is rejected outright, so a malformed id is caught before sending rather than at the collector, which refuses the whole batch without saying which span was at fault.</dd></div>
+          <div class="row"><dt>One root span</dt><dd>OTel has no separate trace object to hang a name on. Without a root, the stages arrive as unrelated top-level spans.</dd></div>
+          <div class="row"><dt>Error propagation</dt><dd>An error in any stage colours the root red, so a failed run cannot look green in the list and go uninvestigated.</dd></div>
+          <div class="row"><dt>Awaited, not fire-and-forget</dt><dd>On serverless the function can freeze the moment the response is returned. Anything still in flight would simply vanish.</dd></div>
+          <div class="row"><dt>Both variable names</dt><dd>Langfuse's Python SDK reads <code>LANGFUSE_HOST</code>, the JavaScript one <code>LANGFUSE_BASE_URL</code>. Both are accepted, because a key set under the other spelling is indistinguishable from one never set.</dd></div>
+        </dl>
+
+        <p>
+          The same spans are returned to the browser and stored, so the timeline on a run page is
+          identical whether or not Langfuse is switched on. Tracing is an optional mirror, never the
+          only record.
+        </p>
+      </section>
+
+      <!-- ================= STORAGE ================= -->
+      <section id="storage">
+        <p class="kicker">Persistence</p>
+        <h2>What gets stored</h2>
+        <p class="lede">
+          Three tables in Neon Postgres, over the HTTP driver. Every row is labelled with
+          <code>STUDENT_NAME</code>. <code>lib/db.ts</code>
+        </p>
+
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>Table</th><th>One row per</th><th>Notable columns</th></tr></thead>
+            <tbody>
+              <tr><td class="id">messages</td><td>Message, user and assistant alike</td><td><code>session_id</code>, <code>role</code>, <code>content</code></td></tr>
+              <tr><td class="id">runs</td><td>Question answered</td><td><code>subgraph</code>, <code>guardrail_verdict</code>, <code>tools_used</code>, <code>trace_id</code>, <code>total_ms</code>, <code>detail</code> (JSONB)</td></tr>
+              <tr><td class="id">handoffs</td><td>Handover to a person</td><td><code>reference</code>, <code>urgency</code>, <code>summary</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          The <code>detail</code> column holds the whole run as JSON &mdash; plan, every tool call
+          with its arguments and result, the guardrail report, and the timeline. That is what lets a
+          run page rebuild a run exactly, weeks later, without Langfuse.
+        </p>
+
+        <p>
+          <code>ensureTable()</code> runs on every chat request and every statement in it is
+          idempotent: <code>CREATE TABLE IF NOT EXISTS</code>, then
+          <code>ALTER TABLE &hellip; ADD COLUMN IF NOT EXISTS</code>, then
+          <code>CREATE INDEX IF NOT EXISTS</code>. Running it against a database that already has
+          everything changes nothing.
+        </p>
+      </section>
+
+      <!-- ================= FAILURE ================= -->
+      <section id="failure">
+        <p class="kicker">Robustness</p>
+        <h2>When things fail</h2>
+        <p class="lede">
+          The rule throughout: a customer waiting for an answer should get one, even when a stage
+          misbehaves.
+        </p>
+
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>What breaks</th><th>What happens</th><th>Customer sees</th></tr></thead>
+            <tbody>
+              <tr><td>Router model call fails</td><td>Falls back to a safe branch</td><td>A normal answer</td></tr>
+              <tr><td>Planner returns nonsense</td><td>Falls back to a knowledge search</td><td>A normal answer</td></tr>
+              <tr><td>A tool fails</td><td>Recorded; remaining steps still run</td><td>An answer from partial facts</td></tr>
+              <tr><td>A tool throws</td><td>Caught, span marked <span class="pill p-bad">ERROR</span></td><td>An answer from partial facts</td></tr>
+              <tr><td>Composer fails</td><td>A fixed safe sentence with the phone line</td><td>A usable fallback</td></tr>
+              <tr><td>Guardrail blocks</td><td>Answer replaced by a fitting refusal</td><td>A safe refusal</td></tr>
+              <tr><td>No <code>DATABASE_URL</code></td><td>Saving skipped entirely</td><td>Everything works; nothing is remembered</td></tr>
+              <tr><td>Database unreachable</td><td>Logged only; never breaks the chat</td><td>A normal answer</td></tr>
+              <tr><td>No Langfuse keys</td><td>Tracing off; runs still recorded locally</td><td>No difference</td></tr>
+              <tr><td>No <code>GROQ_API_KEY</code></td><td>The one genuinely fatal case</td><td>A readable error, not a blank screen</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= DECISIONS ================= -->
+      <section id="decisions">
+        <p class="kicker">Rationale</p>
+        <h2>Decisions worth knowing</h2>
+        <p class="lede">
+          Each of these was a fork in the road, and each was taken for a reason that outlives the
+          code.
+        </p>
+
+        <dl class="rows">
+          <div class="row">
+            <dt>Plain fetch, no SDK</dt>
+            <dd>Groq speaks the OpenAI dialect, so the whole call is one readable HTTP request. You can see exactly what leaves the server, and there is no client library to go stale.</dd>
+          </div>
+          <div class="row">
+            <dt>Guardrail in code</dt>
+            <dd>A model checking a model shares its blind spots. Code cannot be charmed by a persuasive draft, and it runs in microseconds.</dd>
+          </div>
+          <div class="row">
+            <dt>Rules before the model</dt>
+            <dd>The cost of misrouting is asymmetric. The dangerous categories are cheap to match with a regex and expensive to get wrong.</dd>
+          </div>
+          <div class="row">
+            <dt>Deterministic tools</dt>
+            <dd>Reproducible runs, assertable tests, and a clean split between a broken tool and a model that called a working one badly.</dd>
+          </div>
+          <div class="row">
+            <dt>BM25, not embeddings</dt>
+            <dd>Small vocabulary, shared wording, instant, free, and identical every time. A vector store would add a service and remove the ability to test exact scores.</dd>
+          </div>
+          <div class="row">
+            <dt>Plan up front</dt>
+            <dd>The whole plan can be judged on its own, and a hallucinated tool name is dropped before anything runs.</dd>
+          </div>
+          <div class="row">
+            <dt>Per-branch tool lists</dt>
+            <dd>A safety boundary, not tidiness. The planner physically cannot reach a tool its branch is not allowed.</dd>
+          </div>
+          <div class="row">
+            <dt>Trace stored twice</dt>
+            <dd>Langfuse is a mirror. The run page works from Postgres alone, so observability never becomes a dependency.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- ================= FILES ================= -->
+      <section id="files">
+        <p class="kicker">Where things live</p>
+        <h2>File map</h2>
+
+        <pre><code>config.ts                  BANK_FACTS, SYSTEM_PROMPT, MODEL, greeting
+
+lib/
+  groq.ts                  askGroq / askGroqJson / askGroqRaw
+  db.ts                    messages, runs, handoffs; ensureTable
+  trace.ts                 Tracer: spans, timeline, flush
+  langfuse.ts              OTLP payload, hex ids, sendSpans
+  knowledge/
+    documents.ts           11 documents; imports BANK_FACTS
+    retriever.ts           tokenise, stem, BM25, widening
+  agent/
+    types.ts               Tool, Plan, ToolResult, RunResult
+    subgraphs.ts           the 5 branches and their guidance
+    tools.ts               the 13 tools, schemas, descriptions
+    router.ts              9 hard rules, policy override, model
+    planner.ts             prompt, validatePlan, fallbackPlan
+    executor.ts            runs steps, fills defaults, citations
+    composer.ts            house style, branch guidance
+    guardrail.ts           repair, 7 checks, verdicts
+    graph.ts               the five stages wired together
+
+app/
+  page.tsx                 chat, with the run panel under each reply
+  dashboard/               health and aggregate stats
+  runs/, runs/[runId]/     every run; plan, tools, guardrail, timeline
+  knowledge/               browse and search the documents
+  tools/                   catalogue, with a form per tool
+  handoffs/                the queue of handovers
+  data/                    raw saved messages
+  api/chat/                the one endpoint the browser calls
+  api/tools/               run a single tool
+  api/health/              what is switched on
+
+tests/                     183 tests across 8 files</code></pre>
+
+        <div class="note">
+          <p>
+            <strong>Three tests fail on purpose.</strong> The ones named
+            <code>[FAILS UNTIL YOU REWRITE IT]</code> check the deliberately weak
+            <code>SYSTEM_PROMPT</code> in <code>config.ts</code>. They are the original assignment
+            and are meant to stay red until a participant rewrites that prompt.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        <p>
+          Meridian Bank does not exist and the fact sheet is invented. Built for Week 2 of the
+          AI &amp; Machine Learning mentorship programme, on Next.js, Groq
+          <code>openai/gpt-oss-120b</code>, Neon Postgres and Langfuse.
+        </p>
+      </footer>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>
