@@ -11,11 +11,11 @@
 
 import {
   langfuseIsConfigured,
-  observationEvent,
-  sendBatch,
-  traceEvent,
-  type ObservationInput,
+  newSpanId,
+  newTraceId,
+  sendSpans,
   type SendOutcome,
+  type TraceSpan,
 } from "@/lib/langfuse";
 
 export type SpanRecord = {
@@ -32,15 +32,10 @@ export type SpanRecord = {
   model?: string;
   level: "DEFAULT" | "WARNING" | "ERROR";
   statusMessage?: string;
+  usage?: { input?: number; output?: number; total?: number };
 };
 
-function newId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-}
-
-export function newTraceId(): string {
-  return newId("trace");
-}
+export { newTraceId };
 
 export type SpanOptions = {
   type?: "SPAN" | "GENERATION";
@@ -61,10 +56,18 @@ export type SpanEnd = {
 export class Tracer {
   readonly traceId: string;
   readonly name: string;
+  /**
+   * The span that stands for the whole run.
+   *
+   * OpenTelemetry has no separate idea of a "trace" to hang a name on, so one
+   * root span owns the run and every stage becomes its child. Without it the
+   * stages would arrive as unrelated top-level spans.
+   */
+  readonly rootSpanId: string;
   private readonly sessionId?: string;
   private readonly userId?: string;
+  private readonly startedAt: string;
   private readonly spans: SpanRecord[] = [];
-  private readonly pending: ObservationInput[] = [];
 
   constructor(options: {
     name: string;
@@ -74,8 +77,10 @@ export class Tracer {
   }) {
     this.name = options.name;
     this.traceId = options.traceId ?? newTraceId();
+    this.rootSpanId = newSpanId();
     this.sessionId = options.sessionId;
     this.userId = options.userId;
+    this.startedAt = new Date().toISOString();
   }
 
   /**
@@ -89,7 +94,7 @@ export class Tracer {
     options: SpanOptions,
     work: (end: (info: SpanEnd) => void) => Promise<T> | T
   ): Promise<T> {
-    const id = newId("obs");
+    const id = newSpanId();
     const startedAt = new Date().toISOString();
     const startMs = Date.now();
 
@@ -124,42 +129,21 @@ export class Tracer {
     startedAt: string,
     startMs: number
   ) {
-    const endedAt = new Date().toISOString();
-    const durationMs = Date.now() - startMs;
-    const type = options.type ?? "SPAN";
-    const level = closing.level ?? "DEFAULT";
-
     this.spans.push({
       id,
       parentId: options.parentId,
       name,
-      type,
+      type: options.type ?? "SPAN",
       startedAt,
-      endedAt,
-      durationMs,
+      endedAt: new Date().toISOString(),
+      durationMs: Date.now() - startMs,
       input: options.input,
       output: closing.output,
       metadata: { ...options.metadata, ...closing.metadata },
       model: options.model,
-      level,
+      level: closing.level ?? "DEFAULT",
       statusMessage: closing.statusMessage,
-    });
-
-    this.pending.push({
-      id,
-      traceId: this.traceId,
-      parentObservationId: options.parentId,
-      name,
-      type,
-      startTime: startedAt,
-      endTime: endedAt,
-      input: options.input,
-      output: closing.output,
-      metadata: { ...options.metadata, ...closing.metadata, durationMs },
-      model: options.model,
       usage: closing.usage,
-      level,
-      statusMessage: closing.statusMessage,
     });
   }
 
@@ -168,8 +152,56 @@ export class Tracer {
     return [...this.spans];
   }
 
+  /** The spans in the shape the Langfuse client wants, root first. */
+  toTraceSpans(summary: {
+    input?: unknown;
+    output?: unknown;
+    metadata?: Record<string, unknown>;
+    tags?: string[];
+  }): TraceSpan[] {
+    const endedAt = new Date().toISOString();
+
+    const root: TraceSpan = {
+      traceId: this.traceId,
+      spanId: this.rootSpanId,
+      name: this.name,
+      kind: "SPAN",
+      startTime: this.startedAt,
+      endTime: endedAt,
+      input: summary.input,
+      output: summary.output,
+      metadata: summary.metadata,
+      // An error anywhere inside should colour the whole run, or a failed run
+      // looks green in the list and nobody goes to look at it.
+      level: this.spans.some((s) => s.level === "ERROR") ? "ERROR" : "DEFAULT",
+      traceName: this.name,
+      sessionId: this.sessionId,
+      userId: this.userId,
+      tags: summary.tags,
+    };
+
+    const children: TraceSpan[] = this.spans.map((span) => ({
+      traceId: this.traceId,
+      spanId: span.id,
+      parentSpanId: span.parentId ?? this.rootSpanId,
+      name: span.name,
+      kind: span.type,
+      startTime: span.startedAt,
+      endTime: span.endedAt,
+      input: span.input,
+      output: span.output,
+      metadata: { ...span.metadata, durationMs: span.durationMs },
+      model: span.model,
+      usage: span.usage,
+      level: span.level,
+      statusMessage: span.statusMessage,
+    }));
+
+    return [root, ...children];
+  }
+
   /**
-   * Posts the trace and all its spans to Langfuse in one request.
+   * Posts the whole trace in one request.
    *
    * Call this once, at the very end of the request, and await it.
    */
@@ -182,21 +214,6 @@ export class Tracer {
     if (!langfuseIsConfigured()) {
       return { sent: false, reason: "Langfuse keys are not set" };
     }
-
-    const events = [
-      traceEvent({
-        id: this.traceId,
-        name: this.name,
-        sessionId: this.sessionId,
-        userId: this.userId,
-        input: summary.input,
-        output: summary.output,
-        metadata: summary.metadata,
-        tags: summary.tags,
-      }),
-      ...this.pending.map(observationEvent),
-    ];
-
-    return sendBatch(events);
+    return sendSpans(this.toTraceSpans(summary));
   }
 }
