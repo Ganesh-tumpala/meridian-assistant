@@ -10,6 +10,7 @@
  */
 
 import Link from "next/link";
+import { Code, EmptyState, Page, formatTime } from "@/app/components/shell";
 import {
   countMessages,
   databaseIsConfigured,
@@ -31,19 +32,13 @@ export default async function DataPage() {
   // plainly instead of crashing.
   if (!databaseIsConfigured()) {
     return (
-      <Shell student={student}>
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-[15px] font-semibold text-slate-800">
-            No database is connected yet
-          </h2>
-          <p className="pt-2 text-sm leading-relaxed text-slate-600">
-            The chat still works without one, it just does not save anything.
-            To start saving, set <Code>DATABASE_URL</Code> to your Neon
-            connection string and restart the app. On Vercel that is under
-            Settings, Environment Variables.
-          </p>
-        </div>
-      </Shell>
+      <Page current="/data" title="Saved messages" subtitle={`Rows labelled ${student}`}>
+        <EmptyState title="No database is connected yet">
+          The chat still works without one, it just does not save anything. To start saving,
+          set <Code>DATABASE_URL</Code> to your Neon connection string and restart the app. On
+          Vercel that is under Settings, Environment Variables.
+        </EmptyState>
+      </Page>
     );
   }
 
@@ -58,25 +53,29 @@ export default async function DataPage() {
     const message =
       error instanceof Error ? error.message : "The database query failed.";
     return (
-      <Shell student={student}>
+      <Page current="/data" title="Saved messages" subtitle={`Rows labelled ${student}`}>
         <div className="rounded-xl border border-red-200 bg-red-50 p-6">
           <h2 className="text-[15px] font-semibold text-red-800">
             Could not read the database
           </h2>
           <p className="pt-2 text-sm text-red-700">
-            Check that <Code>DATABASE_URL</Code> is the full Neon connection
-            string. The exact error was:
+            Check that <Code>DATABASE_URL</Code> is the full Neon connection string. The exact
+            error was:
           </p>
           <pre className="mt-3 overflow-x-auto rounded-lg border border-red-200 bg-white p-3 text-xs whitespace-pre-wrap text-red-700">
             {message}
           </pre>
         </div>
-      </Shell>
+      </Page>
     );
   }
 
   return (
-    <Shell student={student}>
+    <Page
+      current="/data"
+      title="Saved messages"
+      subtitle={`Rows labelled ${student}`}
+    >
       <p className="pb-4 text-sm text-slate-600">
         {total === 0 ? (
           <>
@@ -121,56 +120,6 @@ export default async function DataPage() {
           </table>
         </div>
       )}
-    </Shell>
+    </Page>
   );
-}
-
-/** The header and page frame, shared by all three states above. */
-function Shell({
-  student,
-  children,
-}: {
-  student: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <main className="mx-auto min-h-screen max-w-3xl px-4">
-      <header className="flex items-center justify-between gap-3 border-b border-slate-200 py-4">
-        <div>
-          <h1 className="text-[15px] font-semibold text-slate-800">Saved messages</h1>
-          <p className="text-xs text-slate-500">
-            Rows labelled <strong className="font-semibold">{student}</strong>
-          </p>
-        </div>
-        <Link
-          href="/"
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
-        >
-          Back to chat
-        </Link>
-      </header>
-
-      <div className="py-6">{children}</div>
-    </main>
-  );
-}
-
-function Code({ children }: { children: React.ReactNode }) {
-  return (
-    <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-slate-700">
-      {children}
-    </code>
-  );
-}
-
-/** Postgres gives back a timestamp. Show it in a way a person can read. */
-function formatTime(value: string): string {
-  const when = new Date(value);
-  if (Number.isNaN(when.getTime())) return String(value);
-  return when.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }

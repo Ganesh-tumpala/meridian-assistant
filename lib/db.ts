@@ -1,5 +1,5 @@
 /**
- * Saves every message to the Neon Postgres database.
+ * Saves messages, agent runs and handoffs to the Neon Postgres database.
  *
  * If DATABASE_URL is missing the app still works, it just does not save
  * anything. That is deliberate so a missing database never breaks the chat.
@@ -20,6 +20,34 @@ export type StoredMessage = {
   role: string;
   content: string;
   student_name: string | null;
+  created_at: string;
+};
+
+/** One row of the runs table, as the /runs pages read it back. */
+export type StoredRun = {
+  id: number;
+  run_id: string;
+  session_id: string;
+  student_name: string | null;
+  question: string;
+  answer: string;
+  subgraph: string;
+  status: string;
+  guardrail_verdict: string;
+  tools_used: string[] | null;
+  trace_id: string | null;
+  total_ms: number;
+  detail: unknown;
+  created_at: string;
+};
+
+export type StoredHandoff = {
+  id: number;
+  reference: string;
+  student_name: string | null;
+  reason: string;
+  urgency: string;
+  summary: string;
   created_at: string;
 };
 
@@ -46,7 +74,7 @@ export function studentName(): string {
 }
 
 /**
- * Creates the messages table the first time it is needed.
+ * Creates the tables the first time they are needed.
  *
  * Every statement here is written so that running it a second time changes
  * nothing. That matters, because this runs on every single chat request.
@@ -78,6 +106,44 @@ export async function ensureTable(): Promise<void> {
     CREATE INDEX IF NOT EXISTS messages_student_name_idx
     ON messages (student_name)
   `;
+
+  // One row per question the agent answered, with the whole run kept as JSON
+  // so the run detail page can rebuild the timeline exactly.
+  await sql`
+    CREATE TABLE IF NOT EXISTS runs (
+      id                BIGSERIAL PRIMARY KEY,
+      run_id            TEXT        NOT NULL,
+      session_id        TEXT        NOT NULL,
+      student_name      TEXT,
+      question          TEXT        NOT NULL,
+      answer            TEXT        NOT NULL,
+      subgraph          TEXT        NOT NULL,
+      status            TEXT        NOT NULL,
+      guardrail_verdict TEXT        NOT NULL,
+      tools_used        TEXT[],
+      trace_id          TEXT,
+      total_ms          INTEGER     NOT NULL DEFAULT 0,
+      detail            JSONB,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS runs_student_name_idx ON runs (student_name)`;
+  await sql`CREATE INDEX IF NOT EXISTS runs_run_id_idx ON runs (run_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS handoffs (
+      id            BIGSERIAL PRIMARY KEY,
+      reference     TEXT        NOT NULL,
+      student_name  TEXT,
+      reason        TEXT        NOT NULL,
+      urgency       TEXT        NOT NULL,
+      summary       TEXT        NOT NULL,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS handoffs_student_name_idx ON handoffs (student_name)`;
 }
 
 export async function saveMessage(
@@ -123,4 +189,162 @@ export async function countMessages(
     WHERE student_name = ${student}
   `;
   return Number((rows as { total: string | number }[])[0]?.total ?? 0);
+}
+
+/* -------------------------------------------------------------------------
+ *  Runs
+ * ----------------------------------------------------------------------- */
+
+export type RunToSave = {
+  runId: string;
+  sessionId: string;
+  question: string;
+  answer: string;
+  subgraph: string;
+  status: string;
+  guardrailVerdict: string;
+  toolsUsed: string[];
+  traceId: string;
+  totalMs: number;
+  detail: unknown;
+};
+
+export async function saveRun(
+  run: RunToSave,
+  student: string = studentName()
+): Promise<void> {
+  const sql = getSql();
+  if (!sql) return;
+  await sql`
+    INSERT INTO runs (
+      run_id, session_id, student_name, question, answer, subgraph,
+      status, guardrail_verdict, tools_used, trace_id, total_ms, detail
+    )
+    VALUES (
+      ${run.runId}, ${run.sessionId}, ${student}, ${run.question}, ${run.answer},
+      ${run.subgraph}, ${run.status}, ${run.guardrailVerdict}, ${run.toolsUsed},
+      ${run.traceId}, ${run.totalMs}, ${JSON.stringify(run.detail)}
+    )
+  `;
+}
+
+export async function getRuns(
+  student: string = studentName(),
+  limit = 50
+): Promise<StoredRun[]> {
+  const sql = getSql();
+  if (!sql) return [];
+  const rows = await sql`
+    SELECT id, run_id, session_id, student_name, question, answer, subgraph,
+           status, guardrail_verdict, tools_used, trace_id, total_ms, detail, created_at
+    FROM runs
+    WHERE student_name = ${student}
+    ORDER BY created_at DESC, id DESC
+    LIMIT ${limit}
+  `;
+  return rows as StoredRun[];
+}
+
+export async function getRun(
+  runId: string,
+  student: string = studentName()
+): Promise<StoredRun | null> {
+  const sql = getSql();
+  if (!sql) return null;
+  const rows = await sql`
+    SELECT id, run_id, session_id, student_name, question, answer, subgraph,
+           status, guardrail_verdict, tools_used, trace_id, total_ms, detail, created_at
+    FROM runs
+    WHERE run_id = ${runId} AND student_name = ${student}
+    LIMIT 1
+  `;
+  return (rows as StoredRun[])[0] ?? null;
+}
+
+/** The numbers the dashboard shows, worked out in the database. */
+export type RunStats = {
+  total: number;
+  blocked: number;
+  errors: number;
+  avgMs: number;
+  bySubgraph: { subgraph: string; count: number }[];
+  byVerdict: { verdict: string; count: number }[];
+};
+
+export async function getRunStats(
+  student: string = studentName()
+): Promise<RunStats> {
+  const sql = getSql();
+  if (!sql) {
+    return { total: 0, blocked: 0, errors: 0, avgMs: 0, bySubgraph: [], byVerdict: [] };
+  }
+
+  const totals = (await sql`
+    SELECT COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE status = 'blocked') AS blocked,
+           COUNT(*) FILTER (WHERE status = 'error')   AS errors,
+           COALESCE(AVG(total_ms), 0) AS avg_ms
+    FROM runs
+    WHERE student_name = ${student}
+  `) as { total: string; blocked: string; errors: string; avg_ms: string }[];
+
+  const bySubgraph = (await sql`
+    SELECT subgraph, COUNT(*) AS count
+    FROM runs
+    WHERE student_name = ${student}
+    GROUP BY subgraph
+    ORDER BY count DESC
+  `) as { subgraph: string; count: string }[];
+
+  const byVerdict = (await sql`
+    SELECT guardrail_verdict AS verdict, COUNT(*) AS count
+    FROM runs
+    WHERE student_name = ${student}
+    GROUP BY guardrail_verdict
+    ORDER BY count DESC
+  `) as { verdict: string; count: string }[];
+
+  const row = totals[0];
+  return {
+    total: Number(row?.total ?? 0),
+    blocked: Number(row?.blocked ?? 0),
+    errors: Number(row?.errors ?? 0),
+    avgMs: Math.round(Number(row?.avg_ms ?? 0)),
+    bySubgraph: bySubgraph.map((r) => ({ subgraph: r.subgraph, count: Number(r.count) })),
+    byVerdict: byVerdict.map((r) => ({ verdict: r.verdict, count: Number(r.count) })),
+  };
+}
+
+/* -------------------------------------------------------------------------
+ *  Handoffs
+ * ----------------------------------------------------------------------- */
+
+export async function saveHandoff(
+  handoff: { reference: string; reason: string; urgency: string; summary: string },
+  student: string = studentName()
+): Promise<boolean> {
+  const sql = getSql();
+  if (!sql) return false;
+  await ensureTable();
+  await sql`
+    INSERT INTO handoffs (reference, student_name, reason, urgency, summary)
+    VALUES (${handoff.reference}, ${student}, ${handoff.reason}, ${handoff.urgency}, ${handoff.summary})
+  `;
+  return true;
+}
+
+export async function getHandoffs(
+  student: string = studentName(),
+  limit = 50
+): Promise<StoredHandoff[]> {
+  const sql = getSql();
+  if (!sql) return [];
+  const rows = await sql`
+    SELECT id, reference, student_name, reason, urgency, summary, created_at
+    FROM handoffs
+    WHERE student_name = ${student}
+    ORDER BY created_at DESC, id DESC
+    LIMIT ${limit}
+  `;
+  return rows as StoredHandoff[];
 }

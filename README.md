@@ -29,8 +29,47 @@ A working chat application with all four layers you have been learning about:
 | Backend | `app/api/chat/route.ts` | Runs on the server, holds your key, calls the model |
 | Model | `lib/groq.ts` | Talks to Groq, which is free |
 | Database | `lib/db.ts` | Saves every message to Neon Postgres |
+| Agent | `lib/agent/` | Routes, plans, calls tools, writes and checks the answer |
+| Knowledge | `lib/knowledge/` | The documents, and the search that finds them |
+| Tracing | `lib/langfuse.ts` | Sends every run to Langfuse |
 
 **The only file you need to edit is `config.ts`.**
+
+### How an answer gets made
+
+Every question goes through five stages, and you can watch all five on the
+`/runs` page:
+
+```
+route  ->  plan  ->  execute  ->  compose  ->  guard
+```
+
+1. **Route** picks one of five subgraphs. Hard-coded rules run first and
+   override the model, because a question about someone's balance must never
+   reach a branch that would try to answer it.
+2. **Plan** writes the list of tool calls before any of them run, so the whole
+   plan can be judged on its own.
+3. **Execute** runs the tools. A tool that fails does not stop the run.
+4. **Compose** turns the tool results into a sentence, using nothing else.
+5. **Guard** checks that sentence for the specific ways a bank assistant causes
+   harm: an invented balance, a promise it cannot keep, a phone number that is
+   not Meridian's. It can pass, rewrite, or block and replace the answer.
+
+The guardrail is plain code rather than another model call. A model asked to
+check a model is only as reliable as the thing it is checking, and it fails in
+exactly the situations where you need it most.
+
+### The pages
+
+| Page | What it is for |
+|---|---|
+| `/` | The chat. Every answer shows which branch, which tools and what the guardrail decided |
+| `/dashboard` | Whether the model, database and tracing are wired up, and what the agent has been doing |
+| `/runs` | Every question answered. Click one for the plan, the tool calls and the guardrail report |
+| `/knowledge` | The documents, and the same search the agent runs, with the same scores |
+| `/tools` | All 13 tools, with a form to run any of them by hand |
+| `/handoffs` | The queue of requests the agent passed to a person |
+| `/data` | The raw saved messages |
 
 ---
 
@@ -73,6 +112,11 @@ matches your option.
    | `GROQ_API_KEY` | the key from step 2 |
    | `DATABASE_URL` | the shared class database string from your instructor |
    | `STUDENT_NAME` | your first name, so your rows can be told apart |
+
+   `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are optional. Add them from
+   [cloud.langfuse.com](https://cloud.langfuse.com) → Settings → API Keys and
+   every run also appears in the Langfuse dashboard. Without them the agent
+   runs exactly the same and `/runs` still works; you only lose that copy.
 
 6. Click **Deploy**. It takes about 90 seconds.
 7. Open your live URL and chat, then visit `/data` on the same URL. Your
