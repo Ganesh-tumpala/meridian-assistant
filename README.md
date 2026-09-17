@@ -189,6 +189,7 @@ will often invent a number that looks entirely real. Watch for it.
 | It replies, but the database is empty | `DATABASE_URL` missing, or you did not redeploy after adding it | Add the Neon database in the Storage tab, then redeploy |
 | The database page is slow | Free Neon databases sleep when idle | Wait fifteen seconds. This is normal |
 | I edited `config.ts` but nothing changed | The deployment has not finished, or the browser cached the page | Check Vercel shows green, then reload holding Shift |
+| Buttons do nothing, and the console shows `main-app.js` 404 | You ran `npm run build` while `npm run dev` was running. They share the `.next` folder, so the build overwrote the files the dev server was serving. The page still renders, but no JavaScript loads, so nothing is clickable | Stop the dev server, delete the `.next` folder, and run `npm run dev` again |
 
 **Never paste your API key into the group chat, even when asking for help.**
 Blur it in screenshots.
