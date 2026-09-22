@@ -7,14 +7,18 @@
  * What it does, in order:
  *   1. reads the message the user typed
  *   2. runs the agent: route, plan, execute, compose, guard
- *   3. saves the question, the answer and the whole run to the database
- *   4. sends the answer back to the page, with the run attached so the UI
+ *   3. checks the final answer for details that never appeared in the fact
+ *      sheet (a phone number, a fee, an opening time), as a warning only
+ *   4. saves the question, the answer and the whole run to the database
+ *   5. sends the answer back to the page, with the run attached so the UI
  *      can show which tools were used and what the guardrail decided
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { runAgent } from "@/lib/agent/graph";
 import { GroqError } from "@/lib/groq";
+import { findUngrounded } from "@/lib/grounding";
+import { BANK_FACTS } from "@/config";
 import {
   ensureTable,
   saveMessage,
@@ -62,6 +66,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status });
   }
 
+  // Groundedness is a warning, not a filter. The customer still sees the
+  // answer; the UI just flags anything that never appeared in the facts.
+  const ungrounded = findUngrounded(run.answer, BANK_FACTS);
+
   // Saving must never break the chat, so failures here are logged only.
   if (databaseIsConfigured()) {
     try {
@@ -86,6 +94,7 @@ export async function POST(request: NextRequest) {
             guardrail: run.guardrail,
             timeline: run.timeline,
             citations: run.citations,
+            ungrounded,
           },
         },
         student
@@ -110,6 +119,7 @@ export async function POST(request: NextRequest) {
       traceId: run.traceId,
       totalMs: run.totalMs,
       tracing: run.tracing,
+      ungrounded,
     },
   });
 }

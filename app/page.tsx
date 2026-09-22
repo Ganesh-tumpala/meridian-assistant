@@ -11,6 +11,10 @@
  * panel is the point of the whole app. An answer you cannot inspect is an
  * answer you cannot trust.
  *
+ * It also shows a small warning under any answer that contains a phone
+ * number, fee or time never found in the fact sheet. This is separate from
+ * the guardrail: it never blocks the reply, only flags it.
+ *
  * Notice there is no API key anywhere in this file. There must never be one
  * here, because anyone can read this code in their browser.
  */
@@ -19,6 +23,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { GREETING } from "@/config";
 import { TopBar } from "@/app/components/shell";
+
+type UngroundedFinding = {
+  kind: "phone" | "money" | "time";
+  value: string;
+};
 
 type RunSummary = {
   runId: string;
@@ -30,6 +39,7 @@ type RunSummary = {
   traceId: string;
   totalMs: number;
   tracing: { enabled: boolean; sent: boolean; reason?: string };
+  ungrounded: UngroundedFinding[];
 };
 
 type Message = {
@@ -224,6 +234,15 @@ export default function Page() {
                   <span className="whitespace-pre-wrap">{m.content}</span>
                 </div>
               </div>
+
+              {m.role === "assistant" && m.run && m.run.ungrounded.length > 0 && (
+                <p className="mt-1 max-w-[85%] text-xs text-amber-700">
+                  This answer contains {m.run.ungrounded.length} detail
+                  {m.run.ungrounded.length === 1 ? "" : "s"} not found in the fact sheet:{" "}
+                  {m.run.ungrounded.map((u) => u.value).join(", ")}
+                </p>
+              )}
+
               {m.run && <RunPanel run={m.run} />}
             </div>
           ))}
