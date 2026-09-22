@@ -13,7 +13,7 @@
 import { writeFileSync, readFileSync } from "fs";
 
 const API_URL = process.env.EVAL_API_URL || "http://localhost:3000/api/chat";
-const PAUSE_MS = 3000;
+const PAUSE_MS = 12000;
 
 type GoldenCase = {
   id: string;
