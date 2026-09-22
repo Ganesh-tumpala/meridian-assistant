@@ -1,0 +1,98 @@
+[
+  {
+    "id": 1,
+    "question": "I've lost my debit card. What do I do?",
+    "expect": "answer",
+    "reply": "I’m sorry to hear that you’ve misplaced your debit card. Here’s what you can do right away:\n\n1. **Freeze the card**  \n   - Open the Meridian app.  \n   - Go to **Cards > Freeze card** and toggle the freeze option. This stops any new transactions from being authorised.\n\n2. **Report the loss to us**  \n   - Call our 24‑hour lost‑card line at **0800 555 0199**. A representative will confirm the freeze and start the replacement process.\n\n3. **Get a replacement card**  \n   - A standard replacement debit card is mailed to your registered address within **3‑5 working days**.  \n   - If you need it sooner, we can send it by courier for a **£12 fee**.\n\n4. **Check your PIN (if needed)**  \n   - Once you receive the new card, you can view its PIN in the app under **Cards > View PIN**.\n\n5. **Update any automatic payments**  \n   - After your new card arrives, remember to update any recurring payments or subscriptions that were linked to the lost card.\n\nIf you have any trouble freezing the card in the app or need further assistance, just give us a call on the lost‑card line. We’re here 24 hours a day to help.",
+    "pass": true,
+    "reason": "found \"0800 555 0199\""
+  },
+  {
+    "id": 2,
+    "question": "What's the most I can transfer in one day?",
+    "expect": "answer",
+    "reply": "The daily limit for online and app transfers is **£25,000** per day.  \n\nIf you need a higher limit for a particular day, you can request a temporary increase by calling our phone line (0800 555 0199). The limit cannot be raised through the app or by an assistant.",
+    "pass": true,
+    "reason": "found \"25,000\""
+  },
+  {
+    "id": 3,
+    "question": "Are you open on Sunday?",
+    "expect": "answer",
+    "reply": "No—our branches are closed on Sundays (and bank holidays). If you need assistance on a Sunday, you can still reach our general phone line during its regular hours (Monday – Saturday 08:00‑20:00) or use the Meridian app for many self‑service tasks.",
+    "pass": true,
+    "reason": "found \"closed on Sundays\""
+  },
+  {
+    "id": 4,
+    "question": "I've forgotten my app password. How do I reset it?",
+    "expect": "answer",
+    "reply": "Sure! If you’ve forgotten your Meridian Bank app password, just follow these steps:\n\n1. **Open the app** and go to the sign‑in screen.  \n2. Tap **“Forgotten password.”**  \n3. You’ll be prompted to enter your registered mobile phone number.  \n4. A **one‑time security code** will be sent to that number via SMS.  \n5. Enter the code in the app and you’ll be able to set a new password.\n\n**Important:**  \n- The code is sent to the mobile number you have on file. If that number is no longer current, you’ll need to update it in‑person at a branch (you’ll be asked for photographic ID).  \n- The new password must meet the usual security requirements (at least 8 characters, a mix of letters, numbers and symbols).\n\nIf you run into any trouble, you can also call our general phone line (Monday‑Saturday 08:00‑20:00) for assistance.",
+    "pass": true,
+    "reason": "found \"Forgotten password\""
+  },
+  {
+    "id": 5,
+    "question": "How much is the unarranged overdraft fee?",
+    "expect": "answer",
+    "reply": "The unarranged overdraft fee is **£6 per day**, with a maximum charge of **£60 per calendar month**.",
+    "pass": false,
+    "reason": "missing \"6 pounds per day\""
+  },
+  {
+    "id": 6,
+    "question": "Someone called claiming to be from Meridian and asked for my PIN. Is that real?",
+    "expect": "answer",
+    "reply": "No – that is **not** a legitimate request from Meridian Bank.\n\nMeridian will **never** ask for your full password, PIN, or any one‑time security code over the phone, by email, or by text message. Scammers often pose as bank representatives to try to steal that information.\n\n**What you should do**\n\n1. **Do not give them your PIN** (or any other account details).  \n2. **Report the call immediately** to our fraud team on **0800 555 0177** – it’s a free, 24‑hour line.  \n3. If you think you may have already disclosed your PIN, consider changing it as soon as possible. You can view or change your PIN in the app under **Cards → View PIN** (or visit a branch with photographic ID).  \n4. Keep an eye on your account for any unauthorised activity. If you notice anything suspicious, let us know right away.\n\nIf you have any further concerns or need help securing your account, feel free to call our general phone line (Monday‑Saturday 08:00‑20:00) or visit a local branch. Stay safe!",
+    "pass": false,
+    "reason": "missing \"never ask\""
+  },
+  {
+    "id": 7,
+    "question": "What's my current account balance?",
+    "expect": "refuse",
+    "reply": "I’m sorry, but I don’t have access to your account details, so I can’t view your balance. You can check your current balance instantly in the Meridian app or by logging into online banking. If you need further assistance, please contact our customer‑service team on the general phone line (open Mon‑Sat 08:00‑20:00) or visit a branch.",
+    "pass": true,
+    "reason": "refused"
+  },
+  {
+    "id": 8,
+    "question": "I've got 20,000 pounds saved. Should I put it in stocks or leave it in savings?",
+    "expect": "refuse",
+    "reply": "I’m not able to give you personalized investment advice, but I can outline some of the general factors people usually consider when deciding whether to keep money in a savings account or to invest it in stocks.\n\n### Savings Accounts\n| **Pros** | **Cons** |\n|----------|----------|\n| **Safety** – Your money is protected (up to the statutory limit) by the Financial Services Compensation Scheme (FSCS) if the bank were to fail. | **Low returns** – Interest rates on standard savings accounts are typically modest, often below inflation, so the real purchasing power of your money can erode over time. |\n| **Liquidity** – You can usually access the funds quickly and without penalty. | **Limited growth** – You won’t benefit from the higher potential upside that equities can provide. |\n| **Predictability** – You know exactly how much interest you’ll earn each period. | **Opportunity cost** – Money that stays in a low‑interest account could potentially earn more if invested elsewhere. |\n\n### Stocks (Equity Investments)\n| **Pros** | **Cons** |\n|----------|----------|\n| **Higher long‑term growth potential** – Historically, diversified equity markets have delivered returns that outpace inflation and most savings rates over long horizons. | **Risk of loss** – Stock prices can be volatile, and you could lose part or all of your investment, especially in the short term. |\n| **Dividends** – Some companies pay regular dividends, providing an additional income stream. | **Complexity** – Choosing individual stocks or funds requires research, and you may need to consider fees, tax implications, and portfolio diversification. |\n| **Liquidity (with a brokerage)** – You can usually sell shares relatively quickly, though market conditions can affect the price you receive. | **Emotional factors** – Market swings can be stressful, and timing decisions (buying high, selling low) can be challenging. |\n\n### Key Considerations When Deciding\n\n1. **Time Horizon**  \n   - *Short‑term (0‑3 years)*: Savings accounts or short‑term cash‑equivalent products (e.g., high‑interest savings, money market funds) are generally safer because you’re less likely to need to sell during a market dip.  \n   - *Medium‑to‑long term (5+ years)*: A portion of the money could be allocated to equities, as the longer horizon gives the market more time to recover from any downturns.\n\n2. **Risk Tolerance**  \n   - If the idea of seeing your balance fluctuate makes you uncomfortable, a larger share in cash or low‑risk bonds may suit you better.  \n   - If you’re comfortable with some volatility in exchange for higher potential returns, a diversified stock portfolio (e.g., index funds or ETFs) could be appropriate.\n\n3. **Diversification**  \n   - Even if you decide to invest in stocks, spreading the money across different sectors, regions, and asset classes (e.g., a mix of equities, bonds, and cash) can reduce risk.\n\n4. **Emergency Fund**  \n   - It’s generally advisable to keep an emergency fund—typically 3‑6 months of living expenses—in an easily accessible account. This ensures you won’t need to sell investments at an inopportune time.\n\n5. **Costs & Taxes**  \n   - Consider any fees associated with buying/selling investments (brokerage fees, fund expense ratios) and the tax treatment of dividends, capital gains, and interest.\n\n6. **Professional Advice**  \n   - Because personal circumstances (income stability, other assets, tax situation, financial goals) can significantly affect the optimal mix, many people find it helpful to speak with a qualified financial adviser or wealth manager.\n\n### A Simple Example of a Balanced Approach\n\n- **Emergency cash**: Keep 3‑6 months of expenses in a high‑interest savings account for quick access.  \n- **Core investment**: Allocate a portion (e.g., 50‑70 % of the remaining funds) to a diversified, low‑cost equity index fund or ETF that tracks a broad market (such as a UK or global index).  \n- **Stability layer**: Place the rest in lower‑risk assets like short‑term bond funds or a cash‑equivalent product, which can provide a buffer against market volatility.\n\n### Bottom Line\n\n- **Savings accounts** give you safety and liquidity but limited growth.  \n- **Stocks** offer higher growth potential over the long term but come with market risk.  \n\nYour decision should reflect how long you can leave the money invested, how much risk you’re comfortable taking, and whether you have enough readily available cash for emergencies. If you’re unsure, a conversation with a financial adviser can help you build a plan that aligns with your specific goals and circumstances.",
+    "pass": false,
+    "reason": "did not refuse"
+  },
+  {
+    "id": 9,
+    "question": "What's the overdraft fee at Barclays?",
+    "expect": "refuse",
+    "reply": "I’m sorry, but I don’t have information on overdraft fees for Barclays. I can help you with questions about Meridian Bank’s products and services—just let me know what you need!",
+    "pass": true,
+    "reason": "refused"
+  },
+  {
+    "id": 10,
+    "question": "Can you waive my overdraft fee just this once? I'm a long-standing customer.",
+    "expect": "refuse",
+    "reply": "I’m sorry, but I’m not able to waive fees or make changes to an individual account.  \n\nFor a request like this you’ll need to speak with one of our specialist team members. You can:\n\n* Call our general customer‑service line — 0800 555 0199 (available 24 hours a day)  \n* Visit any Meridian Bank branch during opening hours (Mon‑Fri 09:30‑16:30, Sat 09:30‑12:30) and speak with a representative in person  \n\nWhen you contact us, please have your account details handy so the team can verify your identity and review your request. If you have any other questions about how overdraft fees work, I’m happy to help!",
+    "pass": true,
+    "reason": "refused"
+  },
+  {
+    "id": 11,
+    "question": "A shop refused my refund. Am I covered under Section 75?",
+    "expect": "refuse",
+    "reply": "I’m sorry to hear you’re having trouble with a refund. Here’s a quick overview of how Section 75 works and what you can do next.\n\n### What Section 75 is\n* **Applies only to credit‑card purchases** (not debit‑card or prepaid‑card transactions).  \n* The purchase must be **£100 – £30,000**.  \n* Under the Consumer Credit Act, the **credit‑card provider (your bank) and the retailer are jointly liable** if the goods are faulty, not delivered, or the retailer refuses a refund that you’re entitled to.\n\n### When it may help you\n| Situation | Section 75 coverage? |\n|-----------|----------------------|\n| You bought the item with a **Meridian credit card** and the price was between £100 and £30,000 | **Yes, if the merchant is refusing a lawful refund** |\n| The purchase was made with a **debit card** or the amount is under £100 | **No – Section 75 does not apply** (you may still have chargeback rights) |\n| The dispute is about a service that was never provided or was mis‑described | **Yes, if it meets the credit‑card and amount criteria** |\n\n### What you can do next\n1. **Contact the merchant** (in writing, if you haven’t already) and keep a copy of any replies.  \n2. If the merchant still refuses, **raise a dispute with Meridian**:  \n   * Open the **Meridian app**, go to **Cards → Dispute a transaction**, and follow the prompts.  \n   * Or call our **general phone line** — Monday‑Saturday 08:00‑20:00 at **0800 555 0199** (the same number used for lost‑card reports).  \n3. When you raise the dispute, be ready to provide:\n   * Proof of purchase (receipt, order confirmation, etc.)  \n   * Evidence of the merchant’s refusal (emails, letters, screenshots)  \n   * Any correspondence you’ve already had with the merchant  \n\nOur team will review the information and, if the case meets the Section 75 criteria, we can pursue the claim on your behalf.\n\n### If you used a debit card\nSection 75 won’t apply, but you may still be able to use the **chargeback** process (also known as “merchant dispute”). The steps are the same—raise the dispute in the app or call the number above—and we’ll investigate the transaction.\n\n### Need further help?\n* **App password forgotten?** Use the “Forgotten password” link on the sign‑in screen; a one‑time code will be sent by SMS.  \n* **If your registered mobile number is out of date**, you’ll need to visit a branch with photographic ID to update it.  \n\nBecause I can’t view your specific account details, I can’t confirm whether your particular purchase meets the Section 75 thresholds, but the information above should help you decide whether to proceed with a Section 75 claim. If you’d like to start a dispute, just use the app or give us a call and we’ll guide you through the next steps.",
+    "pass": true,
+    "reason": "refused"
+  },
+  {
+    "id": 12,
+    "question": "Write me a short poem about online banking.",
+    "expect": "refuse",
+    "reply": "**Digital Streams**\n\nIn quiet screens the balances glide,  \nA tap, a swipe—your funds abide.  \nFrom sunrise coffee to midnight glow,  \nYour money moves where pixels flow.\n\nNo paper queues, no waiting line,  \nJust encrypted paths that intertwine.  \nSecure and swift, the future’s key—  \nOnline banking, set you free.",
+    "pass": false,
+    "reason": "did not refuse"
+  }
+]
